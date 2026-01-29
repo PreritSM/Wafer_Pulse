@@ -152,7 +152,7 @@ venv/
 ENV/
 env.bak/
 venv.bak/
-wafer_pulse/
+wafer_mlops/
 
 # Spyder project settings
 .spyderproject
