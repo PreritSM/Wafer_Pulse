@@ -5,6 +5,7 @@ base:
 
 data_source:
   batch_files: data/Training_Batch_Files
+  artifacts_dir: data/Artifacts
 
 
 data_preparation:
