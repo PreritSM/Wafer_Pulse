@@ -5,14 +5,34 @@ stages:
     deps:
     - path: config/params.yaml
       hash: md5
-      md5: 206fb681f8883f06fda547bc198e4f30
-      size: 2115
+      md5: 4d052de1ee5997de5a231a774d39678d
+      size: 2194
     - path: src/pipeline_02_data_preparation.py
       hash: md5
-      md5: 7aef72de20012a253efbbd73bdd7e5c8
-      size: 1569
+      md5: 3d1456b7c163bb207de9ec97f05e9159
+      size: 1918
     outs:
     - path: data/Artifacts/Data_load_info.txt
       hash: md5
-      md5: 7737e660eaa4a8ee5e4abd21b30c13b1
-      size: 169
+      md5: 34bedfdd8e50df123e26c29566639c43
+      size: 220
+  data_preprocessing:
+    cmd: python src/pipeline_03_data_preprocessing.py
+    deps:
+    - path: config/params.yaml
+      hash: md5
+      md5: 4d052de1ee5997de5a231a774d39678d
+      size: 2194
+    - path: src/pipeline_03_data_preprocessing.py
+      hash: md5
+      md5: 79ffd56649d46e4e1e092abf68a23358
+      size: 3701
+    outs:
+    - path: data/Artifacts/Missing_value_processing.txt
+      hash: md5
+      md5: 2730b57c8915d5894051ebbc537b36e3
+      size: 16107
+    - path: data/preprocessed_data/preprocessed_secom_data.csv
+      hash: md5
+      md5: e9d0205e636483ec6e55693b638eed65
+      size: 5779279
