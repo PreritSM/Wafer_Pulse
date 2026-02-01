@@ -4,6 +4,7 @@ base:
   target_col: Output
 
 data_source:
+  local_data_dir: data/
   batch_files: data/Training_Batch_Files
   artifacts_dir: data/Artifacts
 

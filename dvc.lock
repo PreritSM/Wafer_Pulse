@@ -1,0 +1,18 @@
+schema: '2.0'
+stages:
+  data_preparation:
+    cmd: python src/pipeline_02_data_preparation.py
+    deps:
+    - path: config/params.yaml
+      hash: md5
+      md5: 206fb681f8883f06fda547bc198e4f30
+      size: 2115
+    - path: src/pipeline_02_data_preparation.py
+      hash: md5
+      md5: 7aef72de20012a253efbbd73bdd7e5c8
+      size: 1569
+    outs:
+    - path: data/Artifacts/Data_load_info.txt
+      hash: md5
+      md5: 7737e660eaa4a8ee5e4abd21b30c13b1
+      size: 169

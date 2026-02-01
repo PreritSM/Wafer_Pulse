@@ -1,0 +1,8 @@
+stages:
+  data_preparation:
+    cmd: python src/pipeline_02_data_preparation.py
+    deps:
+      - src/pipeline_02_data_preparation.py
+      - config/params.yaml
+    outs:
+      - data/Artifacts/Data_load_info.txt
