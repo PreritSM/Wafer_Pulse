@@ -1,0 +1,5 @@
+outs:
+- md5: e5ae1b09dbc618849bd079dcef99a3aa
+  size: 14645205
+  hash: md5
+  path: scaled_secom_data.csv

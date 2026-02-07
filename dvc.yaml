@@ -14,3 +14,11 @@ stages:
       - config/params.yaml
     outs:
       - data/Artifacts/Missing_value_processing.txt
+
+  feature_normalization:
+    cmd: python src/pipeline_04_feature_normalize_std.py
+    deps:
+      - src/pipeline_04_feature_normalize_std.py
+      - config/params.yaml
+    outs:
+      - data/Artifacts/feature_scaler.pkl

@@ -1,11 +1,9 @@
 import os
-from flask import config
 import pandas as pd
 from pathlib import Path
 
 from sklearn.impute import SimpleImputer
 from src.pipeline_01_config_setup_fun import read_params
-from src.pipeline_02_data_preparation import load_and_combine_data
 
 def missing_value_imputation(df):
     """

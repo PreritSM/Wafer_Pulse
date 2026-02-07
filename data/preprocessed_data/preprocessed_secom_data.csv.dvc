@@ -1,0 +1,5 @@
+outs:
+- md5: e9d0205e636483ec6e55693b638eed65
+  size: 5779279
+  hash: md5
+  path: preprocessed_secom_data.csv

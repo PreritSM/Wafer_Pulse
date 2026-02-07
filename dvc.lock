@@ -25,14 +25,26 @@ stages:
       size: 2194
     - path: src/pipeline_03_data_preprocessing.py
       hash: md5
-      md5: 79ffd56649d46e4e1e092abf68a23358
-      size: 3701
+      md5: cd73a3c0e7b3d130a9d4364409e3f9b2
+      size: 3609
     outs:
     - path: data/Artifacts/Missing_value_processing.txt
       hash: md5
       md5: 2730b57c8915d5894051ebbc537b36e3
       size: 16107
-    - path: data/preprocessed_data/preprocessed_secom_data.csv
+  feature_normalization:
+    cmd: python src/pipeline_04_feature_normalize_std.py
+    deps:
+    - path: config/params.yaml
       hash: md5
-      md5: e9d0205e636483ec6e55693b638eed65
-      size: 5779279
+      md5: 4d052de1ee5997de5a231a774d39678d
+      size: 2194
+    - path: src/pipeline_04_feature_normalize_std.py
+      hash: md5
+      md5: 5f6dac5f36e5f57657a5ab73383b9d4d
+      size: 1048
+    outs:
+    - path: data/Artifacts/feature_scaler.pkl
+      hash: md5
+      md5: cfaa7786961e6ab75e4b659d715210a8
+      size: 21535
