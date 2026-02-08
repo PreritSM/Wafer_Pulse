@@ -1,0 +1,5 @@
+outs:
+- md5: b931c6731197acbc9fce895ababa97d0
+  size: 1804898
+  hash: md5
+  path: selected_features_secom_data.csv

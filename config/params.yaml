@@ -6,7 +6,7 @@ base:
 data_source:
   local_data_dir: data/
   raw_combined_data: data/raw
-  batch_files: data/Training_Batch_Files
+  Train_Data_dir: data/Train_data
 
 
 data_preparation:
@@ -20,6 +20,7 @@ data_preparation:
   preprocessed_data_dir: data/preprocessed_data
   master_csv: master.csv
   missing_threshold : 0.5
+  top_n_features: 60
 
 pred_data_preparation:
   prediction_db: Prediction.db

@@ -22,3 +22,11 @@ stages:
       - config/params.yaml
     outs:
       - data/Artifacts/feature_scaler.pkl
+
+  feature_selection:
+    cmd: python src/pipeline_05_feature_selection.py
+    deps:
+      - src/pipeline_05_feature_selection.py
+      - config/params.yaml
+    outs:
+      - data/Artifacts/feature_selection_report.txt
