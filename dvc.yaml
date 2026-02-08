@@ -30,3 +30,13 @@ stages:
       - config/params.yaml
     outs:
       - data/Artifacts/feature_selection_report.txt
+
+
+  model_training:
+    cmd: python src/pipeline_06_model_training.py
+    deps:
+      - src/pipeline_06_model_training.py
+      - config/params.yaml
+    outs:
+      - data/Artifacts/model_training_report.txt
+      - models/best_model.pkl

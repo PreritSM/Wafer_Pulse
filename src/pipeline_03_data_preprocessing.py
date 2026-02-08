@@ -63,7 +63,12 @@ def missing_value_examination(config):
 
     return df,y_labels
 
-
+def target_variable_encoding(y):
+    """
+    Encodes the target variable 'Output' to binary values.
+    """
+    y_encoded = y.map({-1: 0, 1: 1})
+    return y_encoded
 
 def data_preprocessing(config):
     """
@@ -73,7 +78,9 @@ def data_preprocessing(config):
     print("Missing Value Examination Completed.")
     df_imputed = missing_value_imputation(df)
     print("Missing Value Imputation Completed.")
-    df_imputed['Output'] = y
+    y_encoded = target_variable_encoding(y)
+    print("Target Variable Encoding Completed.")
+    df_imputed['Output'] = y_encoded
     processed_data_dir = config['data_preparation']['preprocessed_data_dir']
     Path(processed_data_dir).mkdir(parents=True, exist_ok=True)
     df_imputed.to_csv(os.path.join(processed_data_dir, "preprocessed_secom_data.csv"), index=False)

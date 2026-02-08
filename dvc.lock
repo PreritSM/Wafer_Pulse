@@ -25,8 +25,8 @@ stages:
       size: 2208
     - path: src/pipeline_03_data_preprocessing.py
       hash: md5
-      md5: cd73a3c0e7b3d130a9d4364409e3f9b2
-      size: 3609
+      md5: 1c4d7c962144e812f72a0a5918022dba
+      size: 3875
     outs:
     - path: data/Artifacts/Missing_value_processing.txt
       hash: md5
@@ -64,3 +64,23 @@ stages:
       hash: md5
       md5: 9aa9788bdc20396133bfcce6d3a2e4b6
       size: 1890
+  model_training:
+    cmd: python src/pipeline_06_model_training.py
+    deps:
+    - path: config/params.yaml
+      hash: md5
+      md5: 7268852d716ebd5a001b3f0e09868291
+      size: 2208
+    - path: src/pipeline_06_model_training.py
+      hash: md5
+      md5: 84daea9bc8942f08f887a05b40ac9ab6
+      size: 11667
+    outs:
+    - path: data/Artifacts/model_training_report.txt
+      hash: md5
+      md5: ad05271b6d74a83cd07cb39f1de3f7e6
+      size: 721
+    - path: models/best_model.pkl
+      hash: md5
+      md5: f197ca6ff677b486099f09c164bdfeda
+      size: 69690
