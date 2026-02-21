@@ -78,7 +78,7 @@ stages:
     outs:
     - path: data/Artifacts/model_training_report.txt
       hash: md5
-      md5: ad05271b6d74a83cd07cb39f1de3f7e6
+      md5: 2e43c474617f6a261b66e4ea1e30ec3a
       size: 721
     - path: models/best_model.pkl
       hash: md5
