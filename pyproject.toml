@@ -1,9 +1,9 @@
 [build-system]
-requires = ["flit_core >=3.2,<4"]
-build-backend = "flit_core.buildapi"
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
 
 [project]
-name = "wafer_pulse"
+name = "wafer_predictor"
 version = "0.0.1"
 description = "Predictive maintenance for silicon wafers: using sensor-driven AI to preemptively identify defects and streamline semiconductor manufacturing"
 authors = [
@@ -18,19 +18,41 @@ classifiers = [
 requires-python = "~=3.12.0"
 dependencies = [
     "dvc>=3.66.1",
+    "dvc-gdrive>=3.0.1",
+    "matplotlib>=3.10.8",
+    "mlflow>=1.27.0",
+    "pandas>=3.0.0",
+    "pyyaml>=6.0.3",
     "ruff>=0.14.14",
+    "scikit-learn>=1.8.0",
+    "xgboost>=3.1.3",
 ]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "pytest-cov",
+    "black",
+    "isort",
+    "flake8",
+]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
 
 
 [tool.ruff]
 line-length = 99
-src = ["wafer_pulse"]
-include = ["pyproject.toml", "wafer_pulse/**/*.py"]
+src = ["src"]
+include = ["pyproject.toml", "src/**/*.py"]
 
 [tool.ruff.lint]
 extend-select = ["I"]  # Add import sorting
 
 [tool.ruff.lint.isort]
-known-first-party = ["wafer_pulse"]
+known-first-party = ["src"]
 force-sort-within-sections = true
 

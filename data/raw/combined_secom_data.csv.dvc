@@ -1,0 +1,5 @@
+outs:
+- md5: 6991990dfe133e53f8cea021a4974b06
+  size: 5711825
+  hash: md5
+  path: combined_secom_data.csv

@@ -1,0 +1,6 @@
+outs:
+- md5: e4716cda08f7e67afe99a199eec6a801
+  size: 5389983
+  isexec: true
+  hash: md5
+  path: secom.data

@@ -1,0 +1,102 @@
+schema: '2.0'
+stages:
+  data_preparation:
+    cmd: python src/pipeline_02_data_preparation.py
+    deps:
+    - path: config/params.yaml
+      hash: md5
+      md5: 7268852d716ebd5a001b3f0e09868291
+      size: 2208
+    - path: src/pipeline_02_data_preparation.py
+      hash: md5
+      md5: 3d1456b7c163bb207de9ec97f05e9159
+      size: 1918
+    outs:
+    - path: data/Artifacts/Data_load_info.txt
+      hash: md5
+      md5: 34bedfdd8e50df123e26c29566639c43
+      size: 220
+  data_preprocessing:
+    cmd: python src/pipeline_03_data_preprocessing.py
+    deps:
+    - path: config/params.yaml
+      hash: md5
+      md5: 7268852d716ebd5a001b3f0e09868291
+      size: 2208
+    - path: src/pipeline_03_data_preprocessing.py
+      hash: md5
+      md5: 1c4d7c962144e812f72a0a5918022dba
+      size: 3875
+    outs:
+    - path: data/Artifacts/Missing_value_processing.txt
+      hash: md5
+      md5: 2730b57c8915d5894051ebbc537b36e3
+      size: 16107
+  feature_normalization:
+    cmd: python src/pipeline_04_feature_normalize_std.py
+    deps:
+    - path: config/params.yaml
+      hash: md5
+      md5: 7268852d716ebd5a001b3f0e09868291
+      size: 2208
+    - path: src/pipeline_04_feature_normalize_std.py
+      hash: md5
+      md5: 899f17e97b923ccdbf9aa74045a774bd
+      size: 1148
+    outs:
+    - path: data/Artifacts/feature_scaler.pkl
+      hash: md5
+      md5: 18b34ce702eb29d99e02ee8b94730ff4
+      size: 21527
+  feature_selection:
+    cmd: python src/pipeline_05_feature_selection.py
+    deps:
+    - path: config/params.yaml
+      hash: md5
+      md5: 7268852d716ebd5a001b3f0e09868291
+      size: 2208
+    - path: src/pipeline_05_feature_selection.py
+      hash: md5
+      md5: b86325e9ce88dce4e679acb16efa98b6
+      size: 3360
+    outs:
+    - path: data/Artifacts/feature_selection_report.txt
+      hash: md5
+      md5: 9aa9788bdc20396133bfcce6d3a2e4b6
+      size: 1890
+  model_training:
+    cmd: python src/pipeline_06_model_training.py
+    deps:
+    - path: config/params.yaml
+      hash: md5
+      md5: 7268852d716ebd5a001b3f0e09868291
+      size: 2208
+    - path: src/pipeline_06_model_training.py
+      hash: md5
+      md5: 84daea9bc8942f08f887a05b40ac9ab6
+      size: 11667
+    outs:
+    - path: data/Artifacts/model_training_report.txt
+      hash: md5
+      md5: 2e43c474617f6a261b66e4ea1e30ec3a
+      size: 721
+    - path: models/best_model.pkl
+      hash: md5
+      md5: f197ca6ff677b486099f09c164bdfeda
+      size: 69690
+  model_inference:
+    cmd: python src/pipeline_07_model_inference.py --dummy_data
+    deps:
+    - path: config/params.yaml
+      hash: md5
+      md5: 7268852d716ebd5a001b3f0e09868291
+      size: 2208
+    - path: src/pipeline_07_model_inference.py
+      hash: md5
+      md5: 9dd249fd66a6ebd947b5e4d5ac11e8c7
+      size: 4409
+    outs:
+    - path: data/Prediction_Output_File/Predictions.csv
+      hash: md5
+      md5: 817d1b35947b685e59049c57ec9e352c
+      size: 1290
