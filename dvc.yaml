@@ -40,3 +40,12 @@ stages:
     outs:
       - data/Artifacts/model_training_report.txt
       - models/best_model.pkl
+
+  model_inference:
+    cmd: python src/pipeline_07_model_inference.py --dummy_data
+    deps:
+      - src/pipeline_07_model_inference.py
+      - config/params.yaml
+    outs:
+      # - data/Artifacts/model_inference_report.txt
+      - data/Prediction_Output_File/Predictions.csv
