@@ -84,3 +84,19 @@ stages:
       hash: md5
       md5: f197ca6ff677b486099f09c164bdfeda
       size: 69690
+  model_inference:
+    cmd: python src/pipeline_07_model_inference.py --dummy_data
+    deps:
+    - path: config/params.yaml
+      hash: md5
+      md5: 7268852d716ebd5a001b3f0e09868291
+      size: 2208
+    - path: src/pipeline_07_model_inference.py
+      hash: md5
+      md5: 9dd249fd66a6ebd947b5e4d5ac11e8c7
+      size: 4409
+    outs:
+    - path: data/Prediction_Output_File/Predictions.csv
+      hash: md5
+      md5: 817d1b35947b685e59049c57ec9e352c
+      size: 1290
