@@ -14,7 +14,7 @@ jobs:
       WAFER_PROJECT_RUN_OWNER: ${{ vars.WAFER_PROJECT_RUN_OWNER }}
       WAFER_PROJECT_DVC_VERSION_ID: ${{ vars.WAFER_PROJECT_DVC_VERSION_ID }}
       WAFER_PROJECT_API_KEY: ${{ secrets.WAFER_PROJECT_API_KEY }}
-      WAFER_PROJECT_S3_BATCH_BUCKET: wafer-data
+      WAFER_PROJECT_S3_BATCH_BUCKET: wafer-project-pm29
       WAFER_PROJECT_DB_HOST: ${{ secrets.WAFER_PROJECT_DB_HOST }}
       WAFER_PROJECT_DB_PORT: "5432"
       WAFER_PROJECT_DB_NAME: wafer_project
@@ -42,7 +42,7 @@ jobs:
 
       - name: Pull DVC data
         run: |
-          dvc remote add -d s3_storage s3://wafer-data/dvc-registry/ || true
+          dvc remote add -d s3_storage s3://wafer-project-pm29/dvc-registry/ || true
           dvc pull
 
       - name: Train model

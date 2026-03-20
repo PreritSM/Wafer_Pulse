@@ -189,5 +189,12 @@ cython_debug/
 # Ruff stuff:
 .ruff_cache/
 
+# Terraform local artifacts
+infrastructure/terraform/.terraform/
+infrastructure/terraform/minimal.auto.tfvars
+
+# Local MLflow runs
+mlruns/
+
 # PyPI configuration file
 .pypirc

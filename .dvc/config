@@ -1,4 +1,4 @@
 [core]
     autostage = true
 ['remote "s3_storage"']
-    url = s3://wafer-data/dvc-registry/
+    url = s3://wafer-project-pm29/dvc-registry/

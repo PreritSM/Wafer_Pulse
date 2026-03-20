@@ -69,17 +69,17 @@ stages:
     deps:
     - path: config/params.yaml
       hash: md5
-      md5: 7268852d716ebd5a001b3f0e09868291
+      md5: 6a06cc17887508d130295666d2f0139c
       size: 2208
     - path: src/pipeline_06_model_training.py
       hash: md5
-      md5: 84daea9bc8942f08f887a05b40ac9ab6
-      size: 11667
+      md5: 119a8018d35284c58bdc25162ac37cdc
+      size: 12310
     outs:
     - path: data/Artifacts/model_training_report.txt
       hash: md5
-      md5: 2e43c474617f6a261b66e4ea1e30ec3a
-      size: 721
+      md5: f618f41aa0f5c0cbd04d508b698b3e4f
+      size: 755
     - path: models/best_model.pkl
       hash: md5
       md5: f197ca6ff677b486099f09c164bdfeda

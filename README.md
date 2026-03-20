@@ -36,13 +36,13 @@ Built on the **SECOM (Semiconductor Manufacturing) dataset** (1,567 samples, 590
 | **Machine Learning** | Scikit-learn | Preprocessing, feature selection, Random Forest, metrics |
 | **Gradient Boosting** | XGBoost | Primary classification model |
 | **Web Framework** | FastAPI | REST API for serving predictions |
-| **WSGI Server** | Gunicorn | Production-grade HTTP server |
+| **ASGI Server** | Uvicorn | Production-grade API process in container |
 | **CLI** | Click | Command-line interface |
 | **Config Management** | python-dotenv | Environment variable handling |
-| **Cloud (planned)** | Boto3, AWS CLI | AWS S3 data storage & deployment |
-| **Experiment Tracking (planned)** | MLflow | Model versioning & metric logging |
+| **Cloud** | AWS (S3, EC2, ALB, RDS, Lambda, SNS, CloudWatch, Secrets Manager) | Production deployment and operations |
+| **Experiment Tracking** | MLflow | Model versioning, metadata and metric logging |
 | **Data Versioning** | DVC | Large file tracking & pipeline reproducibility |
-| **Build System** | Flit | Python package building |
+| **Build System** | Setuptools | Python package building |
 | **Linting & Formatting** | Ruff | Fast Python linter + formatter |
 | **Testing** | Pytest, pytest-cov | Unit testing & coverage |
 | **Package Management** | uv, pip | Dependency resolution & installation |
@@ -171,8 +171,81 @@ pip install -r requirements.txt
 ### 4. Verify Installation
 
 ```bash
-python -c "import wafer_pulse; print('✅ wafer_pulse installed')"
+python -c "import src; print('✅ wafer project imports correctly')"
 ```
+
+### 5. Configure Environment Variables
+
+```bash
+cp .env.example .env
+```
+
+Populate all required `WAFER_PROJECT_*` values in `.env`.
+
+---
+
+## ☁️ Cloud Provisioning Contract
+
+Before provisioning AWS resources, fill:
+
+- `config/cloud_provisioning_contract.yaml`
+
+This file is the single source for:
+
+- Terraform input values (`api_ami_id`, CIDRs, alert email, etc.)
+- Runtime environment values (`WAFER_PROJECT_*`)
+- Post-provision outputs that must be handed back (`api_alb_dns_name`, `rds_endpoint`, subnet IDs, etc.)
+
+After apply, update the `post_provision_outputs` section in `config/cloud_provisioning_contract.yaml` with real values.
+
+---
+
+## 🏗️ AWS Deployment (Terraform)
+
+```bash
+cd infrastructure/terraform
+terraform init
+terraform plan \
+        -var='api_ami_id=ami-xxxxxxxxxxxxxxxxx' \
+        -var='db_password=***' \
+        -var='api_key=***' \
+        -var='run_owner=owner@example.com' \
+        -var='dvc_version_id=<dvc-version-id>' \
+        -var='alert_email=you@example.com'
+terraform apply
+```
+
+### Minimal Footprint Mode (Recommended)
+
+Use this mode for low/no-load operation and lowest cost. It disables NAT, ALB, and optional observability extras.
+
+Copy and edit the template first:
+
+```bash
+cp infrastructure/terraform/minimal.auto.tfvars.example infrastructure/terraform/minimal.auto.tfvars
+```
+
+```bash
+cd infrastructure/terraform
+terraform init
+terraform apply -var-file="minimal.auto.tfvars"
+```
+
+To tear down everything provisioned by Terraform:
+
+```bash
+cd infrastructure/terraform
+terraform destroy -var-file="minimal.auto.tfvars"
+```
+
+Provisioned components include:
+
+- Custom VPC with public/private subnets and NAT
+- S3 bucket (`s3://wafer-project-pm29/`) with versioning + SSE-S3
+- RDS PostgreSQL (`db.t3.micro`)
+- Internet-facing ALB + EC2 API target
+- CloudWatch logs/dashboard and SNS alerts
+- Secrets Manager secret for runtime config
 
 ---
 
@@ -188,6 +261,39 @@ python -c "import wafer_pulse; print('✅ wafer_pulse installed')"
 | `make format` | Auto-format and fix code with `ruff` |
 | `make test` | Run the test suite |
 | `make help` | List all available Make targets |
+
+### Start API Locally
+
+```bash
+uvicorn src.api.main:app --host 0.0.0.0 --port 8000
+```
+
+### API Endpoints
+
+- `GET /health` -> liveness
+- `GET /ready` -> readiness (model + dependencies loaded)
+- `POST /predict` -> single wafer inference (591 float sensors)
+
+Example:
+
+```bash
+python - <<'PY'
+import json
+import requests
+
+payload = {"sensors": [0.0] * 591}
+resp = requests.post(
+                "http://localhost:8000/predict",
+                headers={"x-api-key": "<WAFER_PROJECT_API_KEY>"},
+                json=payload,
+                timeout=10,
+)
+print(resp.status_code)
+print(json.dumps(resp.json(), indent=2))
+PY
+```
+
+Note: The `sensors` array must contain exactly `591` floating-point values.
 
 ### Pipeline Overview
 
@@ -238,7 +344,7 @@ Training_Batch_Files/*.csv
 | **Random Forest** | `gini`, `max_depth=2`, `log2`, `n=10` | 0.9338 | 0.9331 | 0.8707 | 0.9008 | 0.6079 |
 | **XGBoost** ✅ | `lr=0.5`, `max_depth=5`, `n=50` | 0.9354 | 0.9172 | 0.8899 | 0.9015 | **0.6958** |
 
-> **Note:** The XGBoost model was selected as the best model based on the highest ROC-AUC score, which is the preferred metric for imbalanced classification problems (6.64% defect rate).
+> **Note:** Model selection in the current training pipeline is PR-AUC first (as primary metric for class imbalance), with ROC-AUC and F1 logged as supporting metrics.
 
 ### Dataset Summary
 
@@ -253,28 +359,24 @@ Training_Batch_Files/*.csv
 
 ---
 
-## 🗺️ Roadmap
+## 🗺️ Implementation Status
 
-The project is currently fully functional locally. The following production-grade integrations are planned:
+### ✅ Completed
 
-### 🔬 MLflow Integration — Experiment Tracking
-- [ ] Log all hyperparameters, metrics (accuracy, precision, recall, F1, ROC-AUC), and artifacts per training run.
-- [ ] Register the best model in the MLflow Model Registry with staging/production aliases.
-- [ ] Track dataset versions and feature selection parameters.
-- [ ] Enable experiment comparison dashboards for iterative model improvement.
+- FastAPI service implemented in `src/api/` with `/predict`, `/health`, `/ready`.
+- API key enforcement and payload limits (`1MB` request / `10MB` batch object).
+- Cloud integration layer in `src/infrastructure/` for settings, retries, S3, RDS persistence, and MLflow tagging.
+- Batch ingestion Lambda handler in `src/lambda_handlers/batch_ingestion.py`.
+- DVC remote switched to `s3://wafer-project-pm29/dvc-registry/`.
+- Terraform scaffold in `infrastructure/terraform/` for VPC, S3, ALB, EC2, RDS, CloudWatch, SNS.
+- CI workflows added in `.github/workflows/` including daily training schedule and PR-AUC gate.
 
-### ☁️ AWS Cloud Deployment
-- [ ] Configure **S3** as the DVC remote backend for versioned data and model storage.
-- [ ] Deploy the prediction service on **AWS EC2** / **ECS** behind a load balancer.
-- [ ] Set up **IAM roles** and **Secrets Manager** for secure credential management.
-- [ ] Integrate **CloudWatch** for application monitoring and alerting.
+### 🔜 Next Steps
 
-### 🔄 CI/CD Automation via GitHub Actions
-- [ ] Automated linting and formatting checks on every pull request (`ruff`).
-- [ ] Run the full test suite on push to `main` and on PRs.
-- [ ] Automated model retraining pipeline triggered by data changes.
-- [ ] Continuous deployment — build, containerize, and deploy to AWS on merge to `main`.
-- [ ] DVC pipeline reproducibility checks in CI.
+- Apply Terraform with real account values and capture generated outputs in `config/cloud_provisioning_contract.yaml`.
+- Configure Secrets Manager values and start API container on EC2.
+- Execute smoke tests against ALB endpoint and Lambda S3 trigger.
+- Enable MLflow model promotion flow (Staging/Production aliases) in your hosted MLflow server.
 
 ---
 
@@ -289,8 +391,4 @@ This project is licensed under the **MIT License** — see the [LICENSE](LICENSE
 **PreritSM** — [GitHub](https://github.com/PreritSM)
 
 ---
-
-<p align="center">
-  <i>Built with ❤️ for smarter semiconductor manufacturing.</i>
-</p>
 

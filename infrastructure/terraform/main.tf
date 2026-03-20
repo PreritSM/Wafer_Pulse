@@ -14,7 +14,7 @@ provider "aws" {
 }
 
 locals {
-  dvc_bucket_name    = "wafer-data"
+  dvc_bucket_name    = "wafer-project-pm29"
   dvc_bucket_prefix  = "dvc-registry/"
   mlflow_artifacts   = "mlflow-artifacts/"
   tags = {
@@ -42,6 +42,14 @@ resource "aws_subnet" "public" {
   tags                    = merge(local.tags, { Name = "${var.project_prefix}-public" })
 }
 
+resource "aws_subnet" "public_b" {
+  vpc_id                  = aws_vpc.main.id
+  cidr_block              = var.public_subnet_cidr_b
+  map_public_ip_on_launch = true
+  availability_zone       = "${var.region}b"
+  tags                    = merge(local.tags, { Name = "${var.project_prefix}-public-b" })
+}
+
 resource "aws_subnet" "private" {
   vpc_id            = aws_vpc.main.id
   cidr_block        = var.private_subnet_cidr
@@ -50,11 +58,13 @@ resource "aws_subnet" "private" {
 }
 
 resource "aws_eip" "nat" {
+  count  = var.enable_nat_gateway ? 1 : 0
   domain = "vpc"
 }
 
 resource "aws_nat_gateway" "nat" {
-  allocation_id = aws_eip.nat.id
+  count         = var.enable_nat_gateway ? 1 : 0
+  allocation_id = aws_eip.nat[0].id
   subnet_id     = aws_subnet.public.id
   tags          = local.tags
 }
@@ -72,11 +82,20 @@ resource "aws_route_table_association" "public_assoc" {
   route_table_id = aws_route_table.public_rt.id
 }
 
+resource "aws_route_table_association" "public_b_assoc" {
+  subnet_id      = aws_subnet.public_b.id
+  route_table_id = aws_route_table.public_rt.id
+}
+
 resource "aws_route_table" "private_rt" {
   vpc_id = aws_vpc.main.id
-  route {
-    cidr_block     = "0.0.0.0/0"
-    nat_gateway_id = aws_nat_gateway.nat.id
+
+  dynamic "route" {
+    for_each = var.enable_nat_gateway ? [1] : []
+    content {
+      cidr_block     = "0.0.0.0/0"
+      nat_gateway_id = aws_nat_gateway.nat[0].id
+    }
   }
 }
 
@@ -86,6 +105,7 @@ resource "aws_route_table_association" "private_assoc" {
 }
 
 resource "aws_vpc_endpoint" "s3" {
+  count        = var.enable_s3_vpc_endpoint ? 1 : 0
   vpc_id       = aws_vpc.main.id
   service_name = "com.amazonaws.${var.region}.s3"
   route_table_ids = [
@@ -94,6 +114,7 @@ resource "aws_vpc_endpoint" "s3" {
 }
 
 resource "aws_security_group" "alb" {
+  count       = var.enable_alb ? 1 : 0
   name        = "${var.project_prefix}-alb"
   description = "ALB security group"
   vpc_id      = aws_vpc.main.id
@@ -117,30 +138,24 @@ resource "aws_security_group" "ec2_api" {
   name   = "${var.project_prefix}-ec2-api"
   vpc_id = aws_vpc.main.id
 
-  ingress {
-    from_port       = 8000
-    to_port         = 8000
-    protocol        = "tcp"
-    security_groups = [aws_security_group.alb.id]
+  dynamic "ingress" {
+    for_each = var.enable_alb ? [1] : []
+    content {
+      from_port       = 8000
+      to_port         = 8000
+      protocol        = "tcp"
+      security_groups = [aws_security_group.alb[0].id]
+    }
   }
 
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-}
-
-resource "aws_security_group" "ec2_alb_ingress" {
-  name   = "${var.project_prefix}-ec2-alb-ingress"
-  vpc_id = aws_vpc.main.id
-
-  ingress {
-    from_port       = 8000
-    to_port         = 8000
-    protocol        = "tcp"
-    security_groups = [aws_security_group.alb.id]
+  dynamic "ingress" {
+    for_each = var.enable_alb ? [] : [1]
+    content {
+      from_port   = 8000
+      to_port     = 8000
+      protocol    = "tcp"
+      cidr_blocks = [var.api_ingress_cidr]
+    }
   }
 
   egress {
@@ -209,8 +224,8 @@ resource "aws_s3_bucket_lifecycle_configuration" "wafer_logs_ttl" {
 }
 
 resource "aws_db_subnet_group" "db_subnets" {
-  name       = "${var.project_prefix}-db-subnets"
-  subnet_ids = [aws_subnet.private.id]
+  name       = "${lower(var.project_prefix)}-db-subnets"
+  subnet_ids = [aws_subnet.public.id, aws_subnet.public_b.id]
 }
 
 resource "aws_db_instance" "postgres" {
@@ -225,6 +240,7 @@ resource "aws_db_instance" "postgres" {
   password               = var.db_password
   db_subnet_group_name   = aws_db_subnet_group.db_subnets.name
   vpc_security_group_ids = [aws_security_group.rds.id]
+  publicly_accessible    = false
   skip_final_snapshot    = true
   backup_retention_period = 1
   tags                   = local.tags
@@ -318,8 +334,8 @@ resource "aws_iam_role_policy" "ec2_api_policy" {
 resource "aws_instance" "api" {
   ami                    = var.api_ami_id
   instance_type          = var.api_instance_type
-  subnet_id              = aws_subnet.private.id
-  vpc_security_group_ids = [aws_security_group.ec2_alb_ingress.id, aws_security_group.ec2_api.id]
+  subnet_id              = var.use_private_api_subnet ? aws_subnet.private.id : aws_subnet.public.id
+  vpc_security_group_ids = [aws_security_group.ec2_api.id]
   iam_instance_profile   = aws_iam_instance_profile.ec2_api_profile.name
 
   user_data = <<-EOF
@@ -336,11 +352,12 @@ resource "aws_instance" "api" {
 }
 
 resource "aws_lb" "api" {
+  count              = var.enable_alb ? 1 : 0
   name               = "wafer-project-alb"
   internal           = false
   load_balancer_type = "application"
-  security_groups    = [aws_security_group.alb.id]
-  subnets            = [aws_subnet.public.id]
+  security_groups    = [aws_security_group.alb[0].id]
+  subnets            = [aws_subnet.public.id, aws_subnet.public_b.id]
 
   access_logs {
     bucket  = aws_s3_bucket.wafer_data.id
@@ -350,6 +367,7 @@ resource "aws_lb" "api" {
 }
 
 resource "aws_lb_target_group" "api" {
+  count    = var.enable_alb ? 1 : 0
   name     = "wafer-project-tg"
   port     = 8000
   protocol = "HTTP"
@@ -362,33 +380,38 @@ resource "aws_lb_target_group" "api" {
 }
 
 resource "aws_lb_target_group_attachment" "api_ec2" {
-  target_group_arn = aws_lb_target_group.api.arn
+  count            = var.enable_alb ? 1 : 0
+  target_group_arn = aws_lb_target_group.api[0].arn
   target_id        = aws_instance.api.id
   port             = 8000
 }
 
 resource "aws_lb_listener" "http" {
-  load_balancer_arn = aws_lb.api.arn
+  count             = var.enable_alb ? 1 : 0
+  load_balancer_arn = aws_lb.api[0].arn
   port              = 80
   protocol          = "HTTP"
 
   default_action {
     type             = "forward"
-    target_group_arn = aws_lb_target_group.api.arn
+    target_group_arn = aws_lb_target_group.api[0].arn
   }
 }
 
 resource "aws_sns_topic" "pipeline_alerts" {
+  count = var.enable_observability ? 1 : 0
   name = "${var.project_prefix}-pipeline-alerts"
 }
 
 resource "aws_sns_topic_subscription" "email_alert" {
-  topic_arn = aws_sns_topic.pipeline_alerts.arn
+  count     = var.enable_observability ? 1 : 0
+  topic_arn = aws_sns_topic.pipeline_alerts[0].arn
   protocol  = "email"
   endpoint  = var.alert_email
 }
 
 resource "aws_cloudwatch_metric_alarm" "lambda_errors" {
+  count               = var.enable_observability ? 1 : 0
   alarm_name          = "${var.project_prefix}-lambda-errors"
   comparison_operator = "GreaterThanThreshold"
   evaluation_periods  = 1
@@ -399,7 +422,7 @@ resource "aws_cloudwatch_metric_alarm" "lambda_errors" {
   threshold           = 0
   alarm_description   = "Alert on lambda ingestion failures"
   treat_missing_data  = "notBreaching"
-  alarm_actions       = [aws_sns_topic.pipeline_alerts.arn]
+  alarm_actions       = [aws_sns_topic.pipeline_alerts[0].arn]
 
   dimensions = {
     FunctionName = "wafer-batch-ingestion"
@@ -407,6 +430,7 @@ resource "aws_cloudwatch_metric_alarm" "lambda_errors" {
 }
 
 resource "aws_cloudwatch_dashboard" "api_dashboard" {
+  count          = var.enable_observability ? 1 : 0
   dashboard_name = "wafer-project-observability"
   dashboard_body = jsonencode({
     widgets = [

@@ -33,9 +33,9 @@ class AppSettings(BaseSettings):
 
     aws_region: str = Field(default="us-east-1", alias="WAFER_PROJECT_AWS_REGION")
     s3_batch_bucket: str = Field(alias="WAFER_PROJECT_S3_BATCH_BUCKET")
-    s3_dvc_uri: str = Field(default="s3://wafer-data/dvc-registry/", alias="WAFER_PROJECT_S3_DVC_URI")
+    s3_dvc_uri: str = Field(default="s3://wafer-project-pm29/dvc-registry/", alias="WAFER_PROJECT_S3_DVC_URI")
     s3_mlflow_artifacts_uri: str = Field(
-        default="s3://wafer-data/mlflow-artifacts/",
+        default="s3://wafer-project-pm29/mlflow-artifacts/",
         alias="WAFER_PROJECT_S3_MLFLOW_ARTIFACTS_URI",
     )
 

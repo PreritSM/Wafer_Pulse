@@ -79,7 +79,7 @@ training:
         - 2
         - 4
       max_features: 
-        - auto
+        - sqrt
         - log2
   xg_boost:
     cv: 5

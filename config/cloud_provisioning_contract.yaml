@@ -14,10 +14,17 @@ terraform_inputs:
   region: us-east-1
   vpc_cidr: 10.0.0.0/16
   public_subnet_cidr: 10.0.1.0/24
+  public_subnet_cidr_b: 10.0.3.0/24
   private_subnet_cidr: 10.0.2.0/24
   api_instance_type: t3.micro
   api_ami_id: ami-xxxxxxxxxxxxxxxxx
   alert_email: psmballer29@gmail.com
+  enable_nat_gateway: false
+  enable_alb: false
+  enable_s3_vpc_endpoint: false
+  enable_observability: false
+  use_private_api_subnet: false
+  api_ingress_cidr: 0.0.0.0/0
 
   # Sensitive. Do NOT commit real values.
   secrets:
@@ -25,24 +32,24 @@ terraform_inputs:
     api_key: change-me
 
   # Required training metadata for MLflow tagging.
-  run_owner: owner@example.com
+  run_owner: psmballer29@gmail.com
   dvc_version_id: dvc-placeholder-version
 
 aws_resource_contract:
   # S3
   s3:
-    data_bucket: wafer-data
-    dvc_uri: s3://wafer-data/dvc-registry/
-    mlflow_artifacts_uri: s3://wafer-data/mlflow-artifacts/
+    data_bucket: wafer-project-pm29
+    dvc_uri: s3://wafer-project-pm29/dvc-registry/
+    mlflow_artifacts_uri: s3://wafer-project-pm29/mlflow-artifacts/
     versioning_enabled: true
     sse_algorithm: AES256
 
   # Networking
   networking:
-    internet_facing_alb: true
-    private_subnets_for_compute: true
-    nat_gateway_enabled: true
-    s3_vpc_endpoint_enabled: true
+    internet_facing_alb: false
+    private_subnets_for_compute: false
+    nat_gateway_enabled: false
+    s3_vpc_endpoint_enabled: false
 
   # Database
   rds:
@@ -61,14 +68,20 @@ aws_resource_contract:
 
 post_provision_outputs:
   # Provide actual values after provisioning.
-  api_alb_dns_name: fill-after-provision
+  # Optional in minimal mode (when ALB is disabled): keep as null.
+  api_alb_dns_name: null
+  # Primary endpoint for minimal mode when ALB is disabled.
+  api_ec2_public_dns: fill-after-provision
+  api_ec2_public_ip: fill-after-provision
   rds_endpoint: fill-after-provision
-  private_subnet_id: fill-after-provision
+  # Optional in minimal mode (API in public subnet): keep as null if unused.
+  private_subnet_id: null
   public_subnet_id: fill-after-provision
   vpc_id: fill-after-provision
   secrets_manager_secret_arn: fill-after-provision
   cloudwatch_log_group_name: /wafer-project/api
-  sns_topic_arn: fill-after-provision
+  # Optional in minimal mode (observability extras disabled): keep as null.
+  sns_topic_arn: null
 
 runtime_env_for_api:
   # Mirrors .env.example and must match deployed infrastructure.
@@ -84,9 +97,9 @@ runtime_env_for_api:
   WAFER_PROJECT_BATCH_LIMIT_BYTES: 10000000
 
   WAFER_PROJECT_AWS_REGION: us-east-1
-  WAFER_PROJECT_S3_BATCH_BUCKET: wafer-data
-  WAFER_PROJECT_S3_DVC_URI: s3://wafer-data/dvc-registry/
-  WAFER_PROJECT_S3_MLFLOW_ARTIFACTS_URI: s3://wafer-data/mlflow-artifacts/
+  WAFER_PROJECT_S3_BATCH_BUCKET: wafer-project-pm29
+  WAFER_PROJECT_S3_DVC_URI: s3://wafer-project-pm29/dvc-registry/
+  WAFER_PROJECT_S3_MLFLOW_ARTIFACTS_URI: s3://wafer-project-pm29/mlflow-artifacts/
 
   WAFER_PROJECT_DB_HOST: fill-after-provision
   WAFER_PROJECT_DB_PORT: 5432
@@ -97,7 +110,7 @@ runtime_env_for_api:
 
   WAFER_PROJECT_MLFLOW_TRACKING_URI: http://mlflow.internal:5000
   WAFER_PROJECT_MLFLOW_EXPERIMENT_NAME: wafer-project
-  WAFER_PROJECT_RUN_OWNER: owner@example.com
+  WAFER_PROJECT_RUN_OWNER: psmballer29@gmail.com
   WAFER_PROJECT_DVC_VERSION_ID: dvc-placeholder-version
   WAFER_PROJECT_PR_AUC_BASELINE: 0.0
 
@@ -123,6 +136,6 @@ handoff_checklist:
   - Confirm ALB DNS resolves and /health returns 200.
   - Confirm RDS is reachable from API EC2 security group only.
   - Confirm Secrets Manager secret contains WAFER_PROJECT_* runtime values.
-  - Confirm DVC remote path is s3://wafer-data/dvc-registry/.
+  - Confirm DVC remote path is s3://wafer-project-pm29/dvc-registry/.
   - Confirm CloudWatch logs appear under /wafer-project/api.
   - Confirm SNS email subscription is confirmed.
