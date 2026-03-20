@@ -1,0 +1,14 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.swp
+.git/
+.gitignore
+.venv/
+venv/
+wafer_mlops/
+.env
+.env.*
+data/
+models/

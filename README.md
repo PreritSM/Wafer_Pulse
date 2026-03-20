@@ -35,7 +35,7 @@ Built on the **SECOM (Semiconductor Manufacturing) dataset** (1,567 samples, 590
 | **Data Processing** | Pandas, NumPy | Data manipulation & numerical computing |
 | **Machine Learning** | Scikit-learn | Preprocessing, feature selection, Random Forest, metrics |
 | **Gradient Boosting** | XGBoost | Primary classification model |
-| **Web Framework** | Flask | REST API for serving predictions |
+| **Web Framework** | FastAPI | REST API for serving predictions |
 | **WSGI Server** | Gunicorn | Production-grade HTTP server |
 | **CLI** | Click | Command-line interface |
 | **Config Management** | python-dotenv | Environment variable handling |
@@ -97,6 +97,19 @@ Wafer_Predictor/
 │   └── best_model.pkl              #    XGBoost (lr=0.5, depth=5, n=50)
 │
 ├── src/                            # Source utilities
+│   ├── api/                        # 🚀 FastAPI application (/predict, /health, /ready)
+│   ├── infrastructure/             # ☁️ Cloud and integration modules (AWS/RDS/MLflow settings)
+│   └── lambda_handlers/            # λ S3-triggered batch inference handlers
+│
+├── infrastructure/                 # 🏗️ Infrastructure as Code
+│   └── terraform/                  #    AWS VPC, S3, ALB, EC2, RDS, CloudWatch, SNS
+│
+├── .github/workflows/              # 🔄 CI/CD and scheduled training workflows
+│   ├── ci.yml
+│   └── daily-training.yml
+│
+├── Dockerfile                      # 🐳 API container image (python:3.9-slim + uvicorn)
+├── .env.example                    # 🔐 Environment variable template (WAFER_PROJECT_*)
 ├── tests/                          # 🧪 Test suite
 │   └── test_data.py                #    Data validation tests
 │

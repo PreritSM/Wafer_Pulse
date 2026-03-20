@@ -1,0 +1,49 @@
+name: Daily Training
+
+on:
+  schedule:
+    - cron: "0 2 * * *"
+  workflow_dispatch:
+
+jobs:
+  train:
+    runs-on: ubuntu-latest
+    env:
+      WAFER_PROJECT_MLFLOW_TRACKING_URI: ${{ secrets.WAFER_PROJECT_MLFLOW_TRACKING_URI }}
+      WAFER_PROJECT_MLFLOW_EXPERIMENT_NAME: ${{ vars.WAFER_PROJECT_MLFLOW_EXPERIMENT_NAME }}
+      WAFER_PROJECT_RUN_OWNER: ${{ vars.WAFER_PROJECT_RUN_OWNER }}
+      WAFER_PROJECT_DVC_VERSION_ID: ${{ vars.WAFER_PROJECT_DVC_VERSION_ID }}
+      WAFER_PROJECT_API_KEY: ${{ secrets.WAFER_PROJECT_API_KEY }}
+      WAFER_PROJECT_S3_BATCH_BUCKET: wafer-data
+      WAFER_PROJECT_DB_HOST: ${{ secrets.WAFER_PROJECT_DB_HOST }}
+      WAFER_PROJECT_DB_PORT: "5432"
+      WAFER_PROJECT_DB_NAME: wafer_project
+      WAFER_PROJECT_DB_USER: wafer_user
+      WAFER_PROJECT_DB_PASSWORD: ${{ secrets.WAFER_PROJECT_DB_PASSWORD }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.WAFER_PROJECT_GHA_ROLE_ARN }}
+          aws-region: us-east-1
+
+      - name: Pull DVC data
+        run: |
+          dvc remote add -d s3_storage s3://wafer-data/dvc-registry/ || true
+          dvc pull
+
+      - name: Train model
+        run: python src/pipeline_06_model_training.py

@@ -1,4 +1,4 @@
 [core]
     autostage = true
-['remote "gdrive_storage"']
-    url = gdrive://1Cb2oNa9qLQoaByejo8BUS3M7tl8sNJ7b
+['remote "s3_storage"']
+    url = s3://wafer-data/dvc-registry/

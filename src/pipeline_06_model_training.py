@@ -7,12 +7,12 @@ from datetime import datetime
 from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import classification_report, confusion_matrix, accuracy_score, roc_auc_score
-from sklearn.metrics import precision_score, recall_score, f1_score
+from sklearn.metrics import precision_score, recall_score, f1_score, average_precision_score
 import xgboost as xgb
-# import mlflow
-# import mlflow.sklearn
-# import mlflow.xgboost
+import mlflow
+import mlflow.sklearn
 from src.pipeline_01_config_setup_fun import read_params
+from src.infrastructure.mlflow_tracking import configure_mlflow, log_run_metadata
 
 
 class ModelTrainer:
@@ -178,7 +178,8 @@ class ModelTrainer:
             'precision': precision_score(y_true, y_pred, average='weighted'),
             'recall': recall_score(y_true, y_pred, average='weighted'),
             'f1_score': f1_score(y_true, y_pred, average='weighted'),
-            'roc_auc': roc_auc_score(y_true, y_proba)
+            'roc_auc': roc_auc_score(y_true, y_proba),
+            'pr_auc': average_precision_score(y_true, y_proba),
         }
         return metrics
     
@@ -202,15 +203,16 @@ class ModelTrainer:
             print(f"  CV Score: {results['cv_score']:.4f}")
             print(f"  Test Accuracy: {results['test_metrics']['accuracy']:.4f}")
             print(f"  Test F1: {results['test_metrics']['f1_score']:.4f}")
+            print(f"  Test PR AUC: {results['test_metrics']['pr_auc']:.4f}")
             print(f"  Test ROC AUC: {results['test_metrics']['roc_auc']:.4f}")
             
-            # Use F1 score for model selection (good for potentially imbalanced data)
-            if results['test_metrics']['f1_score'] > best_score:
-                best_score = results['test_metrics']['f1_score']
+            # PR-AUC is the primary selection metric for imbalanced data.
+            if results['test_metrics']['pr_auc'] > best_score:
+                best_score = results['test_metrics']['pr_auc']
                 best_model = self.models[model_name]
                 best_model_name = model_name
         
-        print(f"\n🏆 Best Model: {best_model_name.upper()} (F1 Score: {best_score:.4f})")
+        print(f"\n🏆 Best Model: {best_model_name.upper()} (PR-AUC: {best_score:.4f})")
         return best_model, best_model_name
     
     def save_models(self):
@@ -234,8 +236,8 @@ class ModelTrainer:
         print(f"Saved best parameters to: {params_path}")
         
         # Save Best Model separately
-        best_model_name = max(self.training_results, 
-                              key=lambda k: self.training_results[k]['test_metrics']['f1_score'])
+        best_model_name = max(self.training_results,
+                      key=lambda k: self.training_results[k]['test_metrics']['pr_auc'])
         best_model = self.models[best_model_name]
         best_model_path = os.path.join(models_dir, "best_model.pkl")
         joblib.dump(best_model, best_model_path)
@@ -289,19 +291,26 @@ def main():
     trainer = ModelTrainer(config)
     
     try:
-        # Load and split data
-        X, y = trainer.load_data()
-        X_train, X_test, y_train, y_test = trainer.split_data(X, y)
-        
-        # Train models
-        trainer.train_random_forest(X_train, y_train, X_test, y_test)
-        trainer.train_xgboost(X_train, y_train, X_test, y_test)
-        
-        # Compare models and select best
-        best_model, best_model_name = trainer.compare_models()
-        
-        # Save models and results
-        trainer.save_models()
+        configure_mlflow()
+        with mlflow.start_run(run_name="wafer-training"):
+            # Load and split data
+            X, y = trainer.load_data()
+            X_train, X_test, y_train, y_test = trainer.split_data(X, y)
+
+            # Train models
+            trainer.train_random_forest(X_train, y_train, X_test, y_test)
+            trainer.train_xgboost(X_train, y_train, X_test, y_test)
+
+            # Compare models and select best
+            best_model, best_model_name = trainer.compare_models()
+
+            # Save models and results
+            trainer.save_models()
+
+            best_metrics = trainer.training_results[best_model_name]["test_metrics"]
+            best_params = trainer.training_results[best_model_name]["best_params"]
+            log_run_metadata(best_model_name=best_model_name, best_params=best_params, metrics=best_metrics)
+            mlflow.sklearn.log_model(best_model, artifact_path="model")
         
         print(f"\n✅ Training completed successfully!")
         print(f"Best performing model: {best_model_name}")
