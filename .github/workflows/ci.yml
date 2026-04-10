@@ -42,8 +42,8 @@ jobs:
         run: |
           python - <<'PY'
           import os
-          baseline = float(os.getenv("WAFER_PROJECT_PR_AUC_BASELINE", "0"))
-          current = float(os.getenv("CURRENT_PR_AUC", "0"))
+          baseline = float(os.getenv("WAFER_PROJECT_PR_AUC_BASELINE") or "0")
+          current = float(os.getenv("CURRENT_PR_AUC") or "0")
           if current < baseline:
               raise SystemExit(f"PR-AUC gate failed: current={current}, baseline={baseline}")
           print(f"PR-AUC gate passed: current={current}, baseline={baseline}")
