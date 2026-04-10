@@ -31,7 +31,7 @@ Comparison basis: current branch `main` vs `fast_dev` (user requested `fast-dev`
   - `src/api/main.py`
   - `src/api/schemas.py`
   - `src/api/__init__.py`
-- [ ] Add infrastructure integration modules:
+- [x] Add infrastructure integration modules:
   - `src/infrastructure/aws_clients.py`
   - `src/infrastructure/db.py`
   - `src/infrastructure/mlflow_tracking.py`
