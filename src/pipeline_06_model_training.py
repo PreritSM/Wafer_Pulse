@@ -1,18 +1,25 @@
+import logging
 import os
-import pandas as pd
-import numpy as np
 import pickle
 import joblib
 from datetime import datetime
-from sklearn.model_selection import train_test_split, GridSearchCV
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import classification_report, confusion_matrix, accuracy_score, roc_auc_score
-from sklearn.metrics import precision_score, recall_score, f1_score, average_precision_score
+
+import numpy as np
+import pandas as pd
 import xgboost as xgb
 import mlflow
 import mlflow.sklearn
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import (
+    accuracy_score, average_precision_score, f1_score,
+    precision_score, recall_score, roc_auc_score,
+)
+from sklearn.model_selection import GridSearchCV, train_test_split
+
 from src.pipeline_01_config_setup_fun import read_params
 from src.infrastructure.mlflow_tracking import configure_mlflow, log_run_metadata
+
+logger = logging.getLogger(__name__)
 
 
 class ModelTrainer:
@@ -281,8 +288,8 @@ class ModelTrainer:
 
 def main():
     """Main training pipeline function."""
-    print("Starting Model Training Pipeline")
-    print("="*60)
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+    logger.info("Starting model training pipeline")
     
     # Load configuration
     config = read_params(os.path.join("config", "params.yaml"))

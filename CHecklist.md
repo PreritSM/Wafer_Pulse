@@ -63,12 +63,12 @@ Comparison basis: current branch `main` vs `fast_dev` (user requested `fast-dev`
 
 ### B) Gaps visible in current `main` code quality/completion
 
-- [ ] Replace placeholder failing unit test in `tests/test_data.py` (`assertTrue(False)`) with real tests.
-- [ ] Add runnable tests for each pipeline stage and inference path.
-- [ ] Wire inference for real input batch/schema validation (current flow is mostly dummy-data oriented).
-- [ ] Add robust error handling + logging consistency across all pipeline scripts.
-- [ ] Add/verify model registry or experiment tracking integration (MLflow lines are commented in training code).
-- [ ] Ensure Terraform local/provider artifacts are not committed from local workspace state (keep only intentional IaC files tracked).
+- [x] Replace placeholder failing unit test in `tests/test_data.py` (`assertTrue(False)`) with real tests.
+- [x] Add runnable tests for each pipeline stage and inference path.
+- [x] Wire inference for real input batch/schema validation (current flow is mostly dummy-data oriented).
+- [x] Add robust error handling + logging consistency across all pipeline scripts.
+- [x] Add/verify model registry or experiment tracking integration (MLflow lines are commented in training code).
+- [x] Ensure Terraform local/provider artifacts are not committed from local workspace state (keep only intentional IaC files tracked).
 
 ## Quick Branch Delta Summary
 

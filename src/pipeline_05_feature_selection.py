@@ -1,38 +1,47 @@
+import logging
 import os
-import pandas as pd
-import numpy as np
-from sklearn.feature_selection import mutual_info_classif
-from src.pipeline_01_config_setup_fun import read_params
+
 import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+from sklearn.feature_selection import mutual_info_classif
+
+from src.pipeline_01_config_setup_fun import read_params
+
+logger = logging.getLogger(__name__)
 
 
 def feature_selection(config):
     """
-    Main function to perform feature selection using mutual information.
+    Select top-N features using Mutual Information scores.
     """
-    print("Feature Selection using Mutual Information")
-    print("=" * 50)
-    df = pd.read_csv(
-        os.path.join(config['data_preparation']['preprocessed_data_dir'], "scaled_secom_data.csv")
-    )
+    csv_path = os.path.join(config['data_preparation']['preprocessed_data_dir'], "scaled_secom_data.csv")
+    if not os.path.exists(csv_path):
+        raise FileNotFoundError(f"Scaled data not found: {csv_path}")
+
+    logger.info("Running Mutual Information feature selection on %s", csv_path)
+    df = pd.read_csv(csv_path)
     y = df['Output'].copy()
-    print(y.value_counts())
     X = df.drop('Output', axis=1)
+
     mi_scores = mutual_info_classif(X, y, random_state=config['base']['random_state'])
     mi_scores_series = pd.Series(mi_scores, index=X.columns).sort_values(ascending=False)
-    selected_features = mi_scores_series[:config['data_preparation']['top_n_features']].index.tolist()
-    print(f"Selected {len(selected_features)} features based on mutual information scores.")
-   
-    with open(os.path.join(config['artifacts_dir']['general'], f'feature_selection_report.txt'), 'w') as f:
+    top_n = config['data_preparation']['top_n_features']
+    selected_features = mi_scores_series[:top_n].index.tolist()
+    logger.info("Selected %d features out of %d", len(selected_features), X.shape[1])
+
+    with open(os.path.join(config['artifacts_dir']['general'], 'feature_selection_report.txt'), 'w') as f:
         f.write("Feature Selection Report\n")
         f.write("=" * 50 + "\n")
-        f.write(f"Top {config['data_preparation']['top_n_features']} Features Selected:\n")
+        f.write(f"Top {top_n} Features Selected:\n")
         for feature in selected_features:
             f.write(f"{feature}: MI Score = {mi_scores_series[feature]:.4f}\n")
-        f.close()
+
     df_selected = df[selected_features + ['Output']]
     os.makedirs(config['data_source']['Train_Data_dir'], exist_ok=True)
-    df_selected.to_csv(os.path.join(config['data_source']['Train_Data_dir'], "selected_features_secom_data.csv"), index=False)
+    out_path = os.path.join(config['data_source']['Train_Data_dir'], "selected_features_secom_data.csv")
+    df_selected.to_csv(out_path, index=False)
+    logger.info("Selected feature data saved to %s", out_path)
     return selected_features, mi_scores_series
 
 def visualize_feature_importance(mi_scores_series, config):
@@ -70,8 +79,8 @@ def visualize_feature_importance(mi_scores_series, config):
     plt.close()
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
     config = read_params(os.path.join("config", "params.yaml"))
     selected_features, mi_scores_series = feature_selection(config)
-    print("Feature Selection Completed.")
-    print(f"Selected Features: {selected_features}")
+    logger.info("Feature selection completed. Selected: %s", selected_features)
     visualize_feature_importance(mi_scores_series, config)
