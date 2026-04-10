@@ -27,7 +27,7 @@ Comparison basis: current branch `main` vs `fast_dev` (user requested `fast-dev`
 
 ### A) Pending from `fast_dev` branch (not yet in `main`)
 
-- [ ] Add API layer files:
+- [x] Add API layer files:
   - `src/api/main.py`
   - `src/api/schemas.py`
   - `src/api/__init__.py`
