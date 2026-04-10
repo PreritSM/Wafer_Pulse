@@ -4,7 +4,7 @@
 # external packages
 click
 numpy
-pandas
+pandas>=2.0,<3
 scikit-learn
 flask
 fastapi
@@ -19,8 +19,7 @@ ruffus
 gunicorn
 python-dotenv
 xgboost
-mlflow
-protobuf==3.20.3
+mlflow>=2.14.0
 httpx
 unittest2
 pytest
