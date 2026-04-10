@@ -1,11 +1,12 @@
 from dataclasses import dataclass, field
-from typing import Optional
 from datetime import datetime
+from typing import Optional
 
 
 @dataclass
 class PredictRequest:
     """Single wafer prediction request — expects exactly 60 scaled sensor values."""
+
     sensor_readings: list[float]
 
     def validate(self) -> Optional[str]:
@@ -25,8 +26,9 @@ class PredictRequest:
 @dataclass
 class PredictResponse:
     """Single wafer prediction response."""
-    prediction: int          # -1 = Good, +1 = Defective
-    label: str               # "Good" or "Defective"
+
+    prediction: int  # -1 = Good, +1 = Defective
+    label: str  # "Good" or "Defective"
     inference_time: str = field(default_factory=lambda: datetime.utcnow().isoformat())
 
     def to_dict(self) -> dict:
@@ -40,6 +42,7 @@ class PredictResponse:
 @dataclass
 class BatchPredictRequest:
     """Batch wafer prediction request — list of wafer sensor readings."""
+
     wafers: list[list[float]]
 
     def validate(self) -> Optional[str]:
@@ -60,6 +63,7 @@ class BatchPredictRequest:
 @dataclass
 class BatchPredictResponse:
     """Batch wafer prediction response."""
+
     predictions: list[dict]  # list of {"prediction": int, "label": str}
     total: int
     defective_count: int

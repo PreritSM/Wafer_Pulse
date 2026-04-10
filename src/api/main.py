@@ -1,21 +1,17 @@
 import os
-import sys
 
-import numpy as np
 from flask import Flask, jsonify, request
+import numpy as np
 
-# Allow imports from src/ when running directly
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-from pipeline_01_config_setup_fun import read_params
-from pipeline_07_model_inference import ModelInference
-from api.schemas import (
+from src.api.schemas import (
     BatchPredictRequest,
     BatchPredictResponse,
     HealthResponse,
     PredictRequest,
     PredictResponse,
 )
+from src.pipeline_01_config_setup_fun import read_params
+from src.pipeline_07_model_inference import ModelInference
 
 app = Flask(__name__)
 
@@ -50,6 +46,7 @@ def _label(pred: int) -> str:
 # ---------------------------------------------------------------------------
 # Routes
 # ---------------------------------------------------------------------------
+
 
 @app.route("/health", methods=["GET"])
 def health():

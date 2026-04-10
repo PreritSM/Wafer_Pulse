@@ -16,7 +16,9 @@ class PredictionRecord(Base):
     __tablename__ = "wafer_predictions"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    event_time: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    event_time: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+    )
     label: Mapped[str] = mapped_column(String(16), nullable=False)
     confidence: Mapped[float] = mapped_column(Float, nullable=False)
     raw_prediction: Mapped[int] = mapped_column(nullable=False)
@@ -42,7 +44,9 @@ def _insert_record(record: PredictionRecord) -> None:
         session.commit()
 
 
-def save_prediction(payload: dict[str, Any], label: str, confidence: float, raw_prediction: int, source: str) -> None:
+def save_prediction(
+    payload: dict[str, Any], label: str, confidence: float, raw_prediction: int, source: str
+) -> None:
     record = PredictionRecord(
         payload=payload,
         label=label,

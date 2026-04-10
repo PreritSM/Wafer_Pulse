@@ -35,7 +35,9 @@ def configure_mlflow() -> None:
     mlflow.set_experiment(settings.mlflow_experiment_name)
 
 
-def log_run_metadata(best_model_name: str, best_params: dict[str, Any], metrics: dict[str, float]) -> None:
+def log_run_metadata(
+    best_model_name: str, best_params: dict[str, Any], metrics: dict[str, float]
+) -> None:
     context = get_run_context()
     mlflow.set_tag("git_sha", context.git_sha)
     mlflow.set_tag("dvc_version_id", context.dvc_version_id)
