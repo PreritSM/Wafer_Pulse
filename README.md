@@ -39,10 +39,10 @@ Built on the **SECOM (Semiconductor Manufacturing) dataset** (1,567 samples, 590
 | **WSGI Server** | Gunicorn | Production-grade HTTP server |
 | **CLI** | Click | Command-line interface |
 | **Config Management** | python-dotenv | Environment variable handling |
-| **Cloud (planned)** | Boto3, AWS CLI | AWS S3 data storage & deployment |
-| **Experiment Tracking (planned)** | MLflow | Model versioning & metric logging |
+| **Cloud** | AWS (S3, EC2, ALB, RDS, Lambda, SNS, CloudWatch, Secrets Manager) | Production deployment and operations |
+| **Experiment Tracking** | MLflow | Model versioning, metadata and metric logging |
 | **Data Versioning** | DVC | Large file tracking & pipeline reproducibility |
-| **Build System** | Flit | Python package building |
+| **Build System** | Setuptools | Python package building |
 | **Linting & Formatting** | Ruff | Fast Python linter + formatter |
 | **Testing** | Pytest, pytest-cov | Unit testing & coverage |
 | **Package Management** | uv, pip | Dependency resolution & installation |
@@ -52,62 +52,50 @@ Built on the **SECOM (Semiconductor Manufacturing) dataset** (1,567 samples, 590
 ## 📁 Project Structure
 
 ```
-Wafer_Predictor/
+Wafer_Pulse/
 │
 ├── Makefile                        # Build automation (install, lint, format, test, clean)
 ├── pyproject.toml                  # Package metadata, build config & ruff settings
 ├── requirements.txt                # Pinned Python dependencies
 ├── LICENSE                         # MIT License
 ├── README.md                       # ← You are here
-│
-├── wafer_pulse/                    # 🐍 Main Python package
-│   └── __init__.py                 # Package initializer
+├── Dockerfile                      # 🐳 API container image (python:3.12-slim + gunicorn)
+├── .env.example                    # 🔐 Environment variable template (WAFER_PROJECT_*)
 │
 ├── data/
 │   ├── Training_Batch_Files/       # 📥 Raw sensor CSVs (30+ batch files, 590 sensors each)
-│   │   ├── Wafer_07012020_000000.csv
-│   │   ├── wafer_07012020_041011.csv
-│   │   └── ...                     # Naming: Wafer_DDMMYYYY_HHMMSS.csv
-│   │
 │   ├── Prediction_Batch_files/     # 📥 Unlabeled batch files for inference
-│   │   ├── wafer_07012020_041011.csv
-│   │   └── ...
-│   │
 │   ├── raw/                        # 🗃️ Consolidated raw dataset
-│   │   └── combined_secom_data.csv #    1,567 rows × 591 cols (590 sensors + label)
-│   │
 │   ├── preprocessed_data/          # 🔧 Cleaned & transformed data
-│   │   ├── preprocessed_secom_data.csv  # After imputation & variance filtering
-│   │   └── scaled_secom_data.csv        # After StandardScaler normalization
-│   │
-│   ├── Train_data/                 # 🎯 Final training-ready data
-│   │   └── selected_features_secom_data.csv  # Top 60 MI-selected features + label
-│   │
+│   ├── Train_data/                 # 🎯 Final training-ready data (top 60 MI features)
 │   ├── Prediction_Output_File/     # 📤 Model predictions
-│   │   └── Predictions.csv
-│   │
-│   └── Artifacts/                  # 📊 Pipeline stage reports & serialized objects
-│       ├── Data_load_info.txt           # Dataset shape, label distribution, failure rate
-│       ├── Missing_value_processing.txt # Missing value audit (41,951 NaNs across 538 cols)
-│       ├── feature_selection_report.txt # Top 60 features ranked by Mutual Information
-│       ├── model_training_report.txt    # GridSearchCV results for RF & XGBoost
-│       └── feature_scaler.pkl           # Persisted StandardScaler for inference
+│   └── Artifacts/                  # 📊 Pipeline reports & serialized objects (scaler, etc.)
 │
 ├── models/                         # 🤖 Serialized trained models
 │   └── best_model.pkl              #    XGBoost (lr=0.5, depth=5, n=50)
 │
-├── src/                            # Source utilities
-├── tests/                          # 🧪 Test suite
-│   └── test_data.py                #    Data validation tests
+├── src/
+│   ├── api/                        # 🚀 Flask API (/predict, /predict/batch, /health)
+│   ├── infrastructure/             # ☁️ Cloud integration (AWS/RDS/MLflow/settings)
+│   ├── lambda_handlers/            # λ S3-triggered batch inference handler
+│   └── pipeline_0*.py              # ML pipeline stages (prep → preprocess → train → infer)
 │
+├── infrastructure/
+│   └── terraform/                  # 🏗️ AWS IaC: VPC, S3, ALB, EC2, RDS, CloudWatch, SNS
+│
+├── .github/workflows/              # 🔄 CI/CD and scheduled training workflows
+│   ├── ci.yml
+│   └── daily-training.yml
+│
+├── config/
+│   ├── params.yaml                 # Pipeline hyperparameters and paths
+│   ├── cloud_provisioning_contract.yaml  # AWS resource contract & post-provision outputs
+│   ├── schema_training.json
+│   └── schema_prediction.json
+│
+├── tests/                          # 🧪 Test suite
 ├── notebooks/                      # 📓 Jupyter notebooks (experimentation)
 ├── docs/                           # 📖 MkDocs documentation site
-│   ├── mkdocs.yml
-│   └── docs/
-│
-├── reports/                        # 📈 Analysis reports & visualizations
-│   └── figures/
-│
 └── references/                     # 📚 Reference materials & data dictionaries
 ```
 
@@ -136,19 +124,7 @@ python3 -m venv venv
 source venv/bin/activate
 ```
 
-Or using the Makefile (requires `virtualenvwrapper`):
-
-```bash
-make create_environment
-```
-
 ### 3. Install Dependencies
-
-```bash
-make requirements
-```
-
-Or manually:
 
 ```bash
 pip install -U pip
@@ -158,8 +134,67 @@ pip install -r requirements.txt
 ### 4. Verify Installation
 
 ```bash
-python -c "import wafer_pulse; print('✅ wafer_pulse installed')"
+python -c "import src; print('✅ wafer project imports correctly')"
 ```
+
+### 5. Configure Environment Variables
+
+```bash
+cp .env.example .env
+```
+
+Populate all required `WAFER_PROJECT_*` values in `.env`.
+
+---
+
+## ☁️ Cloud Provisioning Contract
+
+Before provisioning AWS resources, fill:
+
+- `config/cloud_provisioning_contract.yaml`
+
+This file is the single source for:
+
+- Terraform input values (`api_ami_id`, CIDRs, alert email, etc.)
+- Runtime environment values (`WAFER_PROJECT_*`)
+- Post-provision outputs that must be handed back (`api_alb_dns_name`, `rds_endpoint`, subnet IDs, etc.)
+
+After apply, update the `post_provision_outputs` section with real values.
+
+---
+
+## 🏗️ AWS Deployment (Terraform)
+
+```bash
+cd infrastructure/terraform
+
+# Copy the example config and fill in real values
+cp minimal.auto.tfvars.example minimal.auto.tfvars
+# Edit minimal.auto.tfvars — set api_ami_id, db_password, api_key, alert_email
+
+# Download providers (~674 MB, kept out of git)
+terraform init
+
+# Preview
+terraform plan -var-file="minimal.auto.tfvars"
+
+# Apply
+terraform apply -var-file="minimal.auto.tfvars"
+
+# Tear down
+terraform destroy -var-file="minimal.auto.tfvars"
+```
+
+Provisioned components include:
+
+- Custom VPC with public/private subnets
+- S3 bucket (`s3://wafer-project-pm29/`) with versioning + SSE-S3
+- RDS PostgreSQL (`db.t3.micro`)
+- Optional internet-facing ALB + EC2 API target
+- CloudWatch logs and optional SNS alerts
+- Secrets Manager secret for runtime config
+
+> **Note:** `minimal.auto.tfvars` is gitignored. Only `minimal.auto.tfvars.example` (with placeholders) is committed. Never commit a tfvars file with real credentials.
 
 ---
 
@@ -176,9 +211,33 @@ python -c "import wafer_pulse; print('✅ wafer_pulse installed')"
 | `make test` | Run the test suite |
 | `make help` | List all available Make targets |
 
-### Pipeline Overview
+### Start API Locally
 
-The ML pipeline flows through the following stages, with each stage reading from the previous stage's output:
+```bash
+python src/api/main.py
+# or with gunicorn:
+gunicorn --chdir src "api.main:app" --bind 0.0.0.0:5000
+```
+
+### API Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/health` | Liveness — model load status |
+| `POST` | `/predict` | Single wafer inference (60 scaled sensor readings) |
+| `POST` | `/predict/batch` | Batch inference — list of wafers |
+
+Example:
+
+```bash
+curl -s -X POST http://localhost:5000/predict \
+  -H "Content-Type: application/json" \
+  -d '{"sensor_readings": [0.0, 0.1, ...]}' | python -m json.tool
+```
+
+> The `sensor_readings` array must contain exactly **60** pre-scaled floating-point values (output of `StandardScaler` + Mutual Information feature selection).
+
+### Pipeline Overview
 
 ```
 Training_Batch_Files/*.csv
@@ -209,7 +268,7 @@ Training_Batch_Files/*.csv
         ▼
 ┌───────────────────┐     ┌──────────────────────────────────────┐
 │  Model Training   │────▶│  models/best_model.pkl               │
-│  (RF vs XGBoost)  │     │  XGBoost selected (AUC = 0.6958)    │
+│  (RF vs XGBoost)  │     │  Logged to MLflow                    │
 └───────────────────┘     └──────────────────────────────────────┘
         │
         ▼
@@ -225,7 +284,7 @@ Training_Batch_Files/*.csv
 | **Random Forest** | `gini`, `max_depth=2`, `log2`, `n=10` | 0.9338 | 0.9331 | 0.8707 | 0.9008 | 0.6079 |
 | **XGBoost** ✅ | `lr=0.5`, `max_depth=5`, `n=50` | 0.9354 | 0.9172 | 0.8899 | 0.9015 | **0.6958** |
 
-> **Note:** The XGBoost model was selected as the best model based on the highest ROC-AUC score, which is the preferred metric for imbalanced classification problems (6.64% defect rate).
+> **Note:** Model selection uses PR-AUC as the primary metric (best for class imbalance at 6.6% defect rate). ROC-AUC and F1 are logged as supporting metrics.
 
 ### Dataset Summary
 
@@ -240,69 +299,24 @@ Training_Batch_Files/*.csv
 
 ---
 
-## ☁️ Infrastructure Setup (Terraform)
+## 🗺️ Implementation Status
 
-The `infrastructure/terraform/` directory contains the AWS provisioning config. The Terraform provider binaries are **not committed** — they are downloaded on `terraform init`.
+### ✅ Completed
 
-### Prerequisites
+- Flask API in `src/api/` with `/predict`, `/predict/batch`, `/health`.
+- Cloud integration layer in `src/infrastructure/` for settings, retries, S3, RDS persistence, and MLflow tagging.
+- Batch ingestion Lambda handler in `src/lambda_handlers/batch_ingestion.py`.
+- DVC remote configured to `s3://wafer-project-pm29/dvc-registry/`.
+- Terraform scaffold in `infrastructure/terraform/` for VPC, S3, ALB, EC2, RDS, CloudWatch, SNS.
+- CI workflows in `.github/workflows/` including daily training schedule and PR-AUC gate.
+- MLflow tracking wired into `pipeline_06_model_training.py`.
 
-- [Terraform >= 1.0](https://developer.hashicorp.com/terraform/install)
-- [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/install-cliv2.html) configured (`aws configure`)
+### 🔜 Next Steps
 
-### Steps
-
-```bash
-cd infrastructure/terraform
-
-# Copy and fill in your values
-cp minimal.auto.tfvars my.auto.tfvars
-# Edit my.auto.tfvars — set db_password, api_key, alert_email, etc.
-
-# Download providers (~674 MB, kept out of git)
-terraform init
-
-# Preview changes
-terraform plan
-
-# Apply
-terraform apply
-```
-
-> **Note:** `minimal.auto.tfvars` contains only placeholder values (`"change-me"`). Never commit a tfvars file with real credentials.
-
-### Local MLflow Runs (`mlruns/`)
-
-MLflow experiment artifacts are written to `mlruns/` locally and are excluded from git. Run `mlflow ui` after a training run to browse experiments:
-
-```bash
-mlflow ui
-# Open http://localhost:5000
-```
-
----
-
-## 🗺️ Roadmap
-
-The project is currently fully functional locally. The following production-grade integrations are planned:
-
-### 🔬 MLflow Integration — Experiment Tracking
-- [ ] Log all hyperparameters, metrics (accuracy, precision, recall, F1, ROC-AUC), and artifacts per training run.
-- [ ] Register the best model in the MLflow Model Registry with staging/production aliases.
-- [ ] Track dataset versions and feature selection parameters.
-- [ ] Enable experiment comparison dashboards for iterative model improvement.
-
-### ☁️ AWS Cloud Deployment
-- [ ] Configure **S3** as the DVC remote backend for versioned data and model storage.
-- [ ] Deploy the prediction service on **AWS EC2** / **ECS** behind a load balancer.
-- [ ] Set up **IAM roles** and **Secrets Manager** for secure credential management.
-- [ ] Integrate **CloudWatch** for application monitoring and alerting.
-
-### 🔄 CI/CD Automation via GitHub Actions
-- [ ] Automated linting and formatting checks on every pull request (`ruff`).
-- [ ] Run the full test suite on push to `main` and on PRs.
-- [ ] Automated model retraining pipeline triggered by data changes.
-- [ ] Continuous deployment — build, containerize, and deploy to AWS on merge to `main`.
-- [ ] DVC pipeline reproducibility checks in CI.
+- Apply Terraform with real account values and capture outputs in `config/cloud_provisioning_contract.yaml`.
+- Configure Secrets Manager and start API container on EC2.
+- Execute smoke tests against the ALB endpoint and Lambda S3 trigger.
+- Enable MLflow model promotion flow (Staging/Production aliases).
 
 ---
 
@@ -315,10 +329,3 @@ This project is licensed under the **MIT License** — see the [LICENSE](LICENSE
 ## 👤 Author
 
 **PreritSM** — [GitHub](https://github.com/PreritSM)
-
----
-
-<p align="center">
-  <i>Built with ❤️ for smarter semiconductor manufacturing.</i>
-</p>
-

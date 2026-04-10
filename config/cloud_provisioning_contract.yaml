@@ -1,0 +1,141 @@
+# Wafer Project - Cloud Provisioning Contract
+# Fill this file, provision resources, then send it back with actual values.
+# All keys are required unless marked optional.
+
+project:
+  name: Wafer Project
+  prefix: WAFER_PROJECT
+  environment: dev
+  owner_email: psmballer29@gmail.com
+  aws_region: us-east-1
+
+terraform_inputs:
+  project_prefix: WAFER_PROJECT
+  region: us-east-1
+  vpc_cidr: 10.0.0.0/16
+  public_subnet_cidr: 10.0.1.0/24
+  public_subnet_cidr_b: 10.0.3.0/24
+  private_subnet_cidr: 10.0.2.0/24
+  api_instance_type: t3.micro
+  api_ami_id: ami-xxxxxxxxxxxxxxxxx
+  alert_email: psmballer29@gmail.com
+  enable_nat_gateway: false
+  enable_alb: false
+  enable_s3_vpc_endpoint: false
+  enable_observability: false
+  use_private_api_subnet: false
+  api_ingress_cidr: 0.0.0.0/0
+
+  # Sensitive. Do NOT commit real values.
+  secrets:
+    db_password: change-me
+    api_key: change-me
+
+  # Required training metadata for MLflow tagging.
+  run_owner: psmballer29@gmail.com
+  dvc_version_id: dvc-placeholder-version
+
+aws_resource_contract:
+  # S3
+  s3:
+    data_bucket: wafer-project-pm29
+    dvc_uri: s3://wafer-project-pm29/dvc-registry/
+    mlflow_artifacts_uri: s3://wafer-project-pm29/mlflow-artifacts/
+    versioning_enabled: true
+    sse_algorithm: AES256
+
+  # Networking
+  networking:
+    internet_facing_alb: false
+    private_subnets_for_compute: false
+    nat_gateway_enabled: false
+    s3_vpc_endpoint_enabled: false
+
+  # Database
+  rds:
+    engine: postgres
+    db_name: wafer_project
+    db_user: wafer_user
+    db_port: 5432
+    sslmode: require
+    backup_retention_days: 1
+
+  # Observability
+  observability:
+    cloudwatch_log_retention_days: 90
+    sns_email_alerting: true
+    lambda_error_alarm_enabled: true
+
+post_provision_outputs:
+  # Provide actual values after provisioning.
+  # Optional in minimal mode (when ALB is disabled): keep as null.
+  api_alb_dns_name: null
+  # Primary endpoint for minimal mode when ALB is disabled.
+  api_ec2_public_dns: fill-after-provision
+  api_ec2_public_ip: fill-after-provision
+  rds_endpoint: fill-after-provision
+  # Optional in minimal mode (API in public subnet): keep as null if unused.
+  private_subnet_id: null
+  public_subnet_id: fill-after-provision
+  vpc_id: fill-after-provision
+  secrets_manager_secret_arn: fill-after-provision
+  cloudwatch_log_group_name: /wafer-project/api
+  # Optional in minimal mode (observability extras disabled): keep as null.
+  sns_topic_arn: null
+
+runtime_env_for_api:
+  # Mirrors .env.example and must match deployed infrastructure.
+  WAFER_PROJECT_APP_NAME: Wafer Project API
+  WAFER_PROJECT_ENV: dev
+  WAFER_PROJECT_API_KEY: change-me
+
+  WAFER_PROJECT_MODEL_PATH: models/best_model.pkl
+  WAFER_PROJECT_SCALER_PATH: data/Artifacts/feature_scaler.pkl
+  WAFER_PROJECT_SELECTED_FEATURES_PATH: data/Train_data/selected_features_secom_data.csv
+
+  WAFER_PROJECT_REQUEST_LIMIT_BYTES: 1000000
+  WAFER_PROJECT_BATCH_LIMIT_BYTES: 10000000
+
+  WAFER_PROJECT_AWS_REGION: us-east-1
+  WAFER_PROJECT_S3_BATCH_BUCKET: wafer-project-pm29
+  WAFER_PROJECT_S3_DVC_URI: s3://wafer-project-pm29/dvc-registry/
+  WAFER_PROJECT_S3_MLFLOW_ARTIFACTS_URI: s3://wafer-project-pm29/mlflow-artifacts/
+
+  WAFER_PROJECT_DB_HOST: fill-after-provision
+  WAFER_PROJECT_DB_PORT: 5432
+  WAFER_PROJECT_DB_NAME: wafer_project
+  WAFER_PROJECT_DB_USER: wafer_user
+  WAFER_PROJECT_DB_PASSWORD: change-me
+  WAFER_PROJECT_DB_SSLMODE: require
+
+  WAFER_PROJECT_MLFLOW_TRACKING_URI: http://mlflow.internal:5000
+  WAFER_PROJECT_MLFLOW_EXPERIMENT_NAME: wafer-project
+  WAFER_PROJECT_RUN_OWNER: psmballer29@gmail.com
+  WAFER_PROJECT_DVC_VERSION_ID: dvc-placeholder-version
+  WAFER_PROJECT_PR_AUC_BASELINE: 0.0
+
+deployment_contract:
+  api:
+    framework: FastAPI
+    health_endpoint: /health
+    ready_endpoint: /ready
+    predict_endpoint: /predict
+    request_limit_bytes: 1000000
+    payload_sensor_count: 591
+    api_auth: x-api-key header
+
+  batch_inference:
+    trigger: S3 event -> Lambda
+    object_size_limit_bytes: 10000000
+    retry_policy:
+      max_retries: 3
+      strategy: exponential_backoff
+
+handoff_checklist:
+  - Confirm Terraform apply completed without drift errors.
+  - Confirm ALB DNS resolves and /health returns 200.
+  - Confirm RDS is reachable from API EC2 security group only.
+  - Confirm Secrets Manager secret contains WAFER_PROJECT_* runtime values.
+  - Confirm DVC remote path is s3://wafer-project-pm29/dvc-registry/.
+  - Confirm CloudWatch logs appear under /wafer-project/api.
+  - Confirm SNS email subscription is confirmed.

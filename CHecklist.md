@@ -48,18 +48,18 @@ Comparison basis: current branch `main` vs `fast_dev` (user requested `fast-dev`
 - [x] Add containerization files:
   - `Dockerfile`
   - `.dockerignore`
-- [ ] Add env template:
+- [x] Add env template:
   - `.env.example`
-- [ ] Add cloud contract file:
+- [x] Add cloud contract file:
   - `config/cloud_provisioning_contract.yaml`
-- [ ] Add full Terraform IaC files:
+- [x] Add full Terraform IaC files:
   - `infrastructure/terraform/main.tf`
   - `infrastructure/terraform/variables.tf`
   - `infrastructure/terraform/outputs.tf`
   - `infrastructure/terraform/.terraform.lock.hcl`
   - `infrastructure/terraform/minimal.auto.tfvars.example`
-- [ ] Bring `README.md`, `requirements.txt`, `pyproject.toml`, and `pipeline_06_model_training.py` updates from `fast_dev` into `main`.
-- [ ] Add missing test file from `fast_dev`: `tests/test_api_schemas.py`.
+- [x] Bring `README.md`, `requirements.txt`, `pyproject.toml`, and `pipeline_06_model_training.py` updates from `fast_dev` into `main`.
+- [x] Add missing test file from `fast_dev`: `tests/test_api_schemas.py`.
 
 ### B) Gaps visible in current `main` code quality/completion
 
