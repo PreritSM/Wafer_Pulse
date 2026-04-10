@@ -189,3 +189,24 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+# Terraform
+**/.terraform/
+*.tfstate
+*.tfstate.backup
+*.tfstate.lock.info
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+terraform.tfvars
+# Keep minimal.auto.tfvars (placeholder config) committed
+*.auto.tfvars
+!infrastructure/terraform/minimal.auto.tfvars
+
+# MLflow
+mlruns/
+
+# DVC cache (large binary artifacts)
+.dvc/cache/
+.dvc/tmp/
