@@ -39,13 +39,13 @@ Comparison basis: current branch `main` vs `fast_dev` (user requested `fast-dev`
   - `src/infrastructure/retry.py`
   - `src/infrastructure/settings.py`
   - `src/infrastructure/__init__.py`
-- [ ] Add serverless ingestion handler:
+- [x] Add serverless ingestion handler:
   - `src/lambda_handlers/batch_ingestion.py`
   - `src/lambda_handlers/__init__.py`
-- [ ] Add CI/CD workflows:
+- [x] Add CI/CD workflows:
   - `.github/workflows/ci.yml`
   - `.github/workflows/daily-training.yml`
-- [ ] Add containerization files:
+- [x] Add containerization files:
   - `Dockerfile`
   - `.dockerignore`
 - [ ] Add env template:
