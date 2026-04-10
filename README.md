@@ -125,8 +125,8 @@ Wafer_Predictor/
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/PreritSM/Wafer_Predictor.git
-cd Wafer_Predictor
+git clone https://github.com/PreritSM/Wafer_Pulse.git
+cd Wafer_Pulse
 ```
 
 ### 2. Create a Virtual Environment
@@ -237,6 +237,47 @@ Training_Batch_Files/*.csv
 | Good wafers (−1) | 1,463 (93.4%) |
 | Defective wafers (+1) | 104 (6.6%) |
 | Missing values | 41,951 (4.53% of all cells) |
+
+---
+
+## ☁️ Infrastructure Setup (Terraform)
+
+The `infrastructure/terraform/` directory contains the AWS provisioning config. The Terraform provider binaries are **not committed** — they are downloaded on `terraform init`.
+
+### Prerequisites
+
+- [Terraform >= 1.0](https://developer.hashicorp.com/terraform/install)
+- [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/install-cliv2.html) configured (`aws configure`)
+
+### Steps
+
+```bash
+cd infrastructure/terraform
+
+# Copy and fill in your values
+cp minimal.auto.tfvars my.auto.tfvars
+# Edit my.auto.tfvars — set db_password, api_key, alert_email, etc.
+
+# Download providers (~674 MB, kept out of git)
+terraform init
+
+# Preview changes
+terraform plan
+
+# Apply
+terraform apply
+```
+
+> **Note:** `minimal.auto.tfvars` contains only placeholder values (`"change-me"`). Never commit a tfvars file with real credentials.
+
+### Local MLflow Runs (`mlruns/`)
+
+MLflow experiment artifacts are written to `mlruns/` locally and are excluded from git. Run `mlflow ui` after a training run to browse experiments:
+
+```bash
+mlflow ui
+# Open http://localhost:5000
+```
 
 ---
 
